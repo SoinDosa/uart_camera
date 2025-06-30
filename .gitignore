@@ -1,6 +1,46 @@
+# STM32CubeIDE
 .metadata
 .settings
-[Rr]elease
-[Dd]ebug
 .launch
+
+# Build directories
+[Rr]elease/
+[Dd]ebug/
+build/
+obj/
+
+# Generated files
+*.o
+*.elf
+*.bin
+*.hex
+*.map
+*.list
+*.d
+
+# Temporary files
+*.tmp
+*.bak
+*~
+
+# Image files (captured images)
 *.jpg
+*.jpeg
+*.png
+*.bmp
+
+# IDE specific
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS specific
+.DS_Store
+Thumbs.db
+
+# Log files
+*.log
+
+# Backup files
+*.backup
