@@ -91,7 +91,11 @@ void SystemClock_Config(void);
 uint16_t pic[FrameHeight][FrameWidth];
 volatile uint32_t DCMI_FrameIsReady;
 uint32_t Camera_FPS=0;
+volatile uint8_t captured_flag = 0;
 
+// External key debouncing variables
+volatile uint8_t external_key_pressed = 0;
+volatile uint8_t external_key_debounce = 0;
 
 // TODO : (필요시) tensor_arena_size는 필요한 만큼 조정해주세요.
 constexpr int tensor_arena_size = 50 * 1024;
@@ -281,14 +285,14 @@ int main(void)
 	sprintf((char *)&text, "Input_Shape : (%d,%d,%d)\n\r",input->dims->data[0], input->dims->data[1], input->dims->data[2]) ;
 	UART_Send_String((char*)text);
 
-	while (HAL_GPIO_ReadPin(KEY_GPIO_Port, KEY_Pin) == GPIO_PIN_RESET)
+	while (HAL_GPIO_ReadPin(EXTERNAL_KEY_GPIO_Port, EXTERNAL_KEY_Pin) == GPIO_PIN_SET)
 	{
 		sprintf((char *)&text, "Camera id:0x%x   ", hcamera.device_id);
 		LCD_ShowString(0, 58, ST7735Ctx.Width, 16, 12, text);
 
 		LED_Blink(5, 500);
 
-		sprintf((char *)&text, "LongPress K1 to Run");
+		sprintf((char *)&text, "LongPress External Key to Run");
 		LCD_ShowString(0, 58, ST7735Ctx.Width, 16, 12, text);
 
 		LED_Blink(5, 500);
@@ -313,6 +317,61 @@ int main(void)
 			ST7735_FillRGBRect(&st7735_pObj,0,0,(uint8_t *)&pic[20][0], ST7735Ctx.Width, 80);
 			int time_end_lcd = HAL_GetTick();
 
+			// External key debouncing and detection
+			GPIO_PinState current_key_state = HAL_GPIO_ReadPin(EXTERNAL_KEY_GPIO_Port, EXTERNAL_KEY_Pin);
+			
+			// Key is pressed (LOW) and not already processed
+			if (current_key_state == GPIO_PIN_RESET && !external_key_pressed && !captured_flag) {
+				external_key_debounce++;
+				
+				// Debounce delay (wait for stable state)
+				if (external_key_debounce > 5) { // 약 50ms (10ms * 5)
+					external_key_pressed = 1;
+					external_key_debounce = 0;
+					captured_flag = 1;
+					
+					// 디버그: 키 상태 확인
+					UART_Send_String((char*)"External Key Pressed - Starting Image Transfer\n");
+					
+					// 이미지 전송 시작 마커 전송
+					UART_Send_String((char*)"IMG_START\n");
+
+					// 이미지 데이터 전송 (전체 프레임)
+					for (int y = 0; y < FrameHeight; y++) {
+					for (int x = 0; x < FrameWidth; x++) {
+						// 픽셀 데이터 추출 (리틀 엔디안 처리)
+						uint8_t pixel_low = pic[y][x] & 0xFF;
+						uint8_t pixel_high = (pic[y][x] >> 8) & 0xFF;
+						// UART로 픽셀 데이터 전송
+						UART_Send_Char(pixel_low);
+						UART_Send_Char(pixel_high);
+				       }
+					}
+
+					// 이미지 전송 종료 마커 전송
+					UART_Send_String((char*)"IMG_END\n");
+
+					// 디버그 메시지
+					UART_Send_String((char*)"Image sent via UART\n");
+
+					captured_flag = 0;
+				}
+			}
+			// Key is released (HIGH) - reset debounce
+			else if (current_key_state == GPIO_PIN_SET) {
+				external_key_pressed = 0;
+				external_key_debounce = 0;
+			}
+			
+			// 디버그: 키가 눌리지 않았을 때 상태 출력 (주기적으로)
+			static uint32_t last_debug_time = 0;
+			if (HAL_GetTick() - last_debug_time > 2000) { // 2초마다
+				last_debug_time = HAL_GetTick();
+				sprintf((char *)&text, "Key State: %s, Debounce: %d\n\r", 
+					(current_key_state == GPIO_PIN_SET) ? "HIGH(Not Pressed)" : "LOW(Pressed)", 
+					external_key_debounce);
+				UART_Send_String((char*)text);
+			}
 			// Draw Input Data Guide Line
 			ST7735_DrawVLine(&st7735_pObj, 160/2-28, 80/2-28, 56, 0xf800);
 			ST7735_DrawVLine(&st7735_pObj, 160/2+28, 80/2-28, 56, 0xf800);
@@ -439,7 +498,10 @@ void Get_Data(void* target){
 	float (*a_target)[28] = (float (*)[28])target;
 	for(int r_t = 0;r_t<28;r_t++){
 		for(int c_t = 0;c_t<28;c_t++){
-			uint16_t pixel = pic[r_base+(2*r_t)][c_base+(2*c_t)];
+			uint16_t temp = pic[r_base+(2*r_t)][c_base+(2*c_t)];
+			uint8_t pixel_low = temp & 0xFF;
+			uint8_t pixel_high = (temp >> 8) & 0xFF;
+			uint16_t pixel = uint16_t((pixel_low << 8) | pixel_high);
 			uint8_t r = ((pixel >> 11) & 0x1F)<<3;
 			uint8_t g = ((pixel >> 5) & 0x3F)<<2;
 			uint8_t b = (pixel & 0x1F)<<3;

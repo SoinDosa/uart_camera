@@ -72,6 +72,9 @@ void Error_Handler(void);
 #define USART1_TX_Port	GPIOB
 #define USART1_RX_Pin	GPIO_PIN_15
 #define USART1_RX_Port	GPIOB
+// External Tact Switch Pin Definition
+#define EXTERNAL_KEY_Pin GPIO_PIN_0
+#define EXTERNAL_KEY_GPIO_Port GPIOA
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus

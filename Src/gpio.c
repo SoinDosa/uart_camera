@@ -72,6 +72,12 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_PULLDOWN;
   HAL_GPIO_Init(KEY_GPIO_Port, &GPIO_InitStruct);
 
+  /*Configure GPIO pin : External Tact Switch */
+  GPIO_InitStruct.Pin = EXTERNAL_KEY_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(EXTERNAL_KEY_GPIO_Port, &GPIO_InitStruct);
+
   /*Configure GPIO pins : PEPin PEPin */
   GPIO_InitStruct.Pin = LCD_CS_Pin|LCD_WR_RS_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
