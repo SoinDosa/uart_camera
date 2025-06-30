@@ -82,6 +82,7 @@ void SystemClock_Config(void);
 // QQVGA
 #define FrameWidth 160
 #define FrameHeight 120
+#define CAPTURE_ZONE_SIZE 48
 #elif TFT18
 // QQVGA2
 #define FrameWidth 128
@@ -336,16 +337,18 @@ int main(void)
 					// 이미지 전송 시작 마커 전송
 					UART_Send_String((char*)"IMG_START\n");
 
+					int r_base = FrameHeight/2 - CAPTURE_ZONE_SIZE/2;
+					int c_base = FrameWidth/2 - CAPTURE_ZONE_SIZE/2;
 					// 이미지 데이터 전송 (전체 프레임)
-					for (int y = 0; y < FrameHeight; y++) {
-					for (int x = 0; x < FrameWidth; x++) {
-						// 픽셀 데이터 추출 (리틀 엔디안 처리)
-						uint8_t pixel_low = pic[y][x] & 0xFF;
-						uint8_t pixel_high = (pic[y][x] >> 8) & 0xFF;
-						// UART로 픽셀 데이터 전송
-						UART_Send_Char(pixel_low);
-						UART_Send_Char(pixel_high);
-				       }
+					for (int y = r_base; y < r_base + CAPTURE_ZONE_SIZE; y++) {
+						for (int x = c_base; x < c_base + CAPTURE_ZONE_SIZE; x++) {
+							// 픽셀 데이터 추출 (리틀 엔디안 처리)
+							uint8_t pixel_low = pic[y][x] & 0xFF;
+							uint8_t pixel_high = (pic[y][x] >> 8) & 0xFF;
+							// UART로 픽셀 데이터 전송
+							UART_Send_Char(pixel_low);
+							UART_Send_Char(pixel_high);
+				    	}
 					}
 
 					// 이미지 전송 종료 마커 전송
@@ -373,10 +376,10 @@ int main(void)
 				UART_Send_String((char*)text);
 			}
 			// Draw Input Data Guide Line
-			ST7735_DrawVLine(&st7735_pObj, 160/2-28, 80/2-28, 56, 0xf800);
-			ST7735_DrawVLine(&st7735_pObj, 160/2+28, 80/2-28, 56, 0xf800);
-			ST7735_DrawHLine(&st7735_pObj, 160/2-28, 80/2-28, 56, 0xf800);
-			ST7735_DrawHLine(&st7735_pObj, 160/2-28, 80/2+28, 56, 0xf800);
+			ST7735_DrawVLine(&st7735_pObj, 160/2-CAPTURE_ZONE_SIZE/2, 80/2-CAPTURE_ZONE_SIZE/2, CAPTURE_ZONE_SIZE, 0xf800);
+			ST7735_DrawVLine(&st7735_pObj, 160/2+CAPTURE_ZONE_SIZE/2, 80/2-CAPTURE_ZONE_SIZE/2, CAPTURE_ZONE_SIZE, 0xf800);
+			ST7735_DrawHLine(&st7735_pObj, 160/2-CAPTURE_ZONE_SIZE/2, 80/2-CAPTURE_ZONE_SIZE/2, CAPTURE_ZONE_SIZE, 0xf800);
+			ST7735_DrawHLine(&st7735_pObj, 160/2-CAPTURE_ZONE_SIZE/2, 80/2+CAPTURE_ZONE_SIZE/2, CAPTURE_ZONE_SIZE, 0xf800);
 
 			int time_start_getdata = HAL_GetTick();
 			Get_Data(input->data.f);
