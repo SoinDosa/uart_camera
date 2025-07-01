@@ -82,11 +82,12 @@ void SystemClock_Config(void);
 // QQVGA
 #define FrameWidth 160
 #define FrameHeight 120
-#define CAPTURE_ZONE_SIZE 48
+#define CAPTURE_ZONE_SIZE 96
 #elif TFT18
 // QQVGA2
 #define FrameWidth 128
 #define FrameHeight 160
+#define CAPTURE_ZONE_SIZE 96
 #endif
 // picture buffer
 uint16_t pic[FrameHeight][FrameWidth];
@@ -246,54 +247,54 @@ int main(void)
 	// TODO : 2. Get Model
 	// 모델을 GetModel 이용하여 불러오고, model의 schema version을 체크해주세요.
 	// library의 version과 다를 시 무한루프
-	const tflite::Model* model = ::tflite::GetModel(fm_qat_model);
-	if (model->version() != TFLITE_SCHEMA_VERSION) {
-		for(;;);
-	}
+	// const tflite::Model* model = ::tflite::GetModel(fm_qat_model);
+	// if (model->version() != TFLITE_SCHEMA_VERSION) {
+	// 	for(;;);
+	// }
 
-	UART_Send_String((char*)"TFLITE_SCHEMA_VERSION OK!\n\r");
+	// UART_Send_String((char*)"TFLITE_SCHEMA_VERSION OK!\n\r");
 
-	tflite::MicroMutableOpResolver<10> micro_op_resolver;
+	// tflite::MicroMutableOpResolver<10> micro_op_resolver;
 
-	// TODO : 3. micro_op_resolver에 Ops 추가하기
-	// 모델 연산에 필요한 Ops를 micro_op_resolver에 추가해주세요.
-	micro_op_resolver.AddConv2D();
-	micro_op_resolver.AddDequantize();
-	micro_op_resolver.AddFullyConnected();
-	micro_op_resolver.AddStridedSlice();
-	micro_op_resolver.AddShape();
-	micro_op_resolver.AddMaxPool2D();
-	micro_op_resolver.AddQuantize();
-	micro_op_resolver.AddPack();
-	micro_op_resolver.AddReshape();
-	micro_op_resolver.AddSoftmax();
+	// // TODO : 3. micro_op_resolver에 Ops 추가하기
+	// // 모델 연산에 필요한 Ops를 micro_op_resolver에 추가해주세요.
+	// micro_op_resolver.AddConv2D();
+	// micro_op_resolver.AddDequantize();
+	// micro_op_resolver.AddFullyConnected();
+	// micro_op_resolver.AddStridedSlice();
+	// micro_op_resolver.AddShape();
+	// micro_op_resolver.AddMaxPool2D();
+	// micro_op_resolver.AddQuantize();
+	// micro_op_resolver.AddPack();
+	// micro_op_resolver.AddReshape();
+	// micro_op_resolver.AddSoftmax();
 
-	// TODO : 4. interpreter 생성 및 allocate tensor 수행
-	// 준비된 model, micro_op_resolver, tensor_arena를 이용하여 interpreter 생성하고
-	// interpreter의 AllocateTensors()를 실행해주세요.
-	// AllocateTensors()실행 실패 시 무한루프로 프로그램을 멈춰주세요.
-	tflite::MicroInterpreter interpreter(model, micro_op_resolver, tensor_arena, tensor_arena_size);
-	if(interpreter.AllocateTensors() != kTfLiteOk){
-		sprintf((char *)&text, "TFLM Allocate Tensor Failed!!");
-		UART_Send_String((char*)text);
-		while(1);
-	}
+	// // TODO : 4. interpreter 생성 및 allocate tensor 수행
+	// // 준비된 model, micro_op_resolver, tensor_arena를 이용하여 interpreter 생성하고
+	// // interpreter의 AllocateTensors()를 실행해주세요.
+	// // AllocateTensors()실행 실패 시 무한루프로 프로그램을 멈춰주세요.
+	// tflite::MicroInterpreter interpreter(model, micro_op_resolver, tensor_arena, tensor_arena_size);
+	// if(interpreter.AllocateTensors() != kTfLiteOk){
+	// 	sprintf((char *)&text, "TFLM Allocate Tensor Failed!!");
+	// 	UART_Send_String((char*)text);
+	// 	while(1);
+	// }
 
-	sprintf((char *)&text, "Tensor Arena used : %d\n\r", interpreter.arena_used_bytes());
-	UART_Send_String((char*)text);
+	// sprintf((char *)&text, "Tensor Arena used : %d\n\r", interpreter.arena_used_bytes());
+	// UART_Send_String((char*)text);
 
-	TfLiteTensor* input = interpreter.input(0);
-	sprintf((char *)&text, "Input_Shape : (%d,%d,%d)\n\r",input->dims->data[0], input->dims->data[1], input->dims->data[2]) ;
-	UART_Send_String((char*)text);
+	// TfLiteTensor* input = interpreter.input(0);
+	// sprintf((char *)&text, "Input_Shape : (%d,%d,%d)\n\r",input->dims->data[0], input->dims->data[1], input->dims->data[2]) ;
+	// UART_Send_String((char*)text);
 
-	while (HAL_GPIO_ReadPin(EXTERNAL_KEY_GPIO_Port, EXTERNAL_KEY_Pin) == GPIO_PIN_SET)
+	while (HAL_GPIO_ReadPin(KEY_GPIO_Port, KEY_Pin) == GPIO_PIN_RESET)
 	{
 		sprintf((char *)&text, "Camera id:0x%x   ", hcamera.device_id);
 		LCD_ShowString(0, 58, ST7735Ctx.Width, 16, 12, text);
 
 		LED_Blink(5, 500);
 
-		sprintf((char *)&text, "LongPress External Key to Run");
+		sprintf((char *)&text, "LongPress K1 to Run");
 		LCD_ShowString(0, 58, ST7735Ctx.Width, 16, 12, text);
 
 		LED_Blink(5, 500);
@@ -376,40 +377,61 @@ int main(void)
 				UART_Send_String((char*)text);
 			}
 			// Draw Input Data Guide Line
-			ST7735_DrawVLine(&st7735_pObj, 160/2-CAPTURE_ZONE_SIZE/2, 80/2-CAPTURE_ZONE_SIZE/2, CAPTURE_ZONE_SIZE, 0xf800);
-			ST7735_DrawVLine(&st7735_pObj, 160/2+CAPTURE_ZONE_SIZE/2, 80/2-CAPTURE_ZONE_SIZE/2, CAPTURE_ZONE_SIZE, 0xf800);
-			ST7735_DrawHLine(&st7735_pObj, 160/2-CAPTURE_ZONE_SIZE/2, 80/2-CAPTURE_ZONE_SIZE/2, CAPTURE_ZONE_SIZE, 0xf800);
-			ST7735_DrawHLine(&st7735_pObj, 160/2-CAPTURE_ZONE_SIZE/2, 80/2+CAPTURE_ZONE_SIZE/2, CAPTURE_ZONE_SIZE, 0xf800);
-
-			int time_start_getdata = HAL_GetTick();
-			Get_Data(input->data.f);
-			int time_end_getdata = HAL_GetTick();
-
-			int time_start_invoke = HAL_GetTick();
-			TfLiteStatus invoke_status = interpreter.Invoke();
-			if (invoke_status != kTfLiteOk) {
-				UART_Send_String((char*)"Invoke failed.\n\r");
-				break;
+			// Calculate center position based on actual LCD and frame dimensions
+			int center_x = 160 / 2;
+			int center_y = 80 / 2;  // Display area height is 80 pixels
+			
+			// Adjust box size to fit within 80-pixel display height
+			int display_box_size = 80;  // Use full display height
+			int box_left = center_x - display_box_size / 2;
+			int box_right = center_x + display_box_size / 2;
+			int box_top = 0;  // Start from top of display
+			int box_bottom = display_box_size;  // End at bottom of display
+			
+			// Draw red rectangle border
+			ST7735_DrawVLine(&st7735_pObj, box_left, box_top, display_box_size, 0xf800);
+			ST7735_DrawVLine(&st7735_pObj, box_right, box_top, display_box_size, 0xf800);
+			ST7735_DrawHLine(&st7735_pObj, box_left, box_top, display_box_size, 0xf800);
+			ST7735_DrawHLine(&st7735_pObj, box_left, box_bottom, display_box_size, 0xf800);
+			
+			// Debug: Print box coordinates periodically
+			static uint32_t last_box_debug_time = 0;
+			if (HAL_GetTick() - last_box_debug_time > 5000) { // 5초마다
+				last_box_debug_time = HAL_GetTick();
+				sprintf((char *)&text, "Box: L=%d,R=%d,T=%d,B=%d,Size=%d\n\r", 
+					box_left, box_right, box_top, box_bottom, display_box_size);
+				UART_Send_String((char*)text);
 			}
-			int time_end_invoke = HAL_GetTick();
 
-			TfLiteTensor* output = interpreter.output(0);
-			int top_ind = Get_Top_Prediction(output->data.f, 10);
+			// int time_start_getdata = HAL_GetTick();
+			// Get_Data(input->data.f);
+			// int time_end_getdata = HAL_GetTick();
 
-			sprintf((char *)&text, "%d %.1f%%\n\r", top_ind, output->data.f[top_ind] * 100.0);
-			UART_Send_String((char*)text);
+			// int time_start_invoke = HAL_GetTick();
+			// TfLiteStatus invoke_status = interpreter.Invoke();
+			// if (invoke_status != kTfLiteOk) {
+			// 	UART_Send_String((char*)"Invoke failed.\n\r");
+			// 	break;
+			// }
+			// int time_end_invoke = HAL_GetTick();
 
-			sprintf((char *)&text, "%d\n\r", top_ind);
-			LCD_ShowString(0, 0, ST7735Ctx.Width, 16, 12, text);
+			// TfLiteTensor* output = interpreter.output(0);
+			// int top_ind = Get_Top_Prediction(output->data.f, 10);
 
-			sprintf((char *)&text, "Cam to LCD : %dms\n\r",time_end_lcd - time_start_lcd);
-			UART_Send_String((char*)text);
+			// sprintf((char *)&text, "%d %.1f%%\n\r", top_ind, output->data.f[top_ind] * 100.0);
+			// UART_Send_String((char*)text);
 
-			sprintf((char *)&text, "Get_Data : %dms\n\r",time_end_getdata - time_start_getdata);
-			UART_Send_String((char*)text);
+			// sprintf((char *)&text, "%d\n\r", top_ind);
+			// LCD_ShowString(0, 0, ST7735Ctx.Width, 16, 12, text);
 
-			sprintf((char *)&text, "invoke : %dms\n\r",time_end_invoke - time_start_invoke);
-			UART_Send_String((char*)text);
+			// sprintf((char *)&text, "Cam to LCD : %dms\n\r",time_end_lcd - time_start_lcd);
+			// UART_Send_String((char*)text);
+
+			// sprintf((char *)&text, "Get_Data : %dms\n\r",time_end_getdata - time_start_getdata);
+			// UART_Send_String((char*)text);
+
+			// sprintf((char *)&text, "invoke : %dms\n\r",time_end_invoke - time_start_invoke);
+			// UART_Send_String((char*)text);
 
 			HAL_DCMI_Start_DMA(&hdcmi, DCMI_MODE_SNAPSHOT, (uint32_t)&pic, FrameWidth * FrameHeight * 2 / 4);
 		}
@@ -496,11 +518,11 @@ void Get_Data(void* target){
 	// Camera Image(pic 배열의 내용)의 중심점을 중심으로 둔 width 56, height 56의 이미지를 28*28 로 줄여서
 	// target이 가르키는 메모리에 넣어주는 program을 작성해주세요.
 	// pixel data는 model의 요구사항에 맞게 변환하여 넣어주세요.
-	int r_base = FrameHeight/2 - 28;
-	int c_base = FrameWidth/2 - 28;
-	float (*a_target)[28] = (float (*)[28])target;
-	for(int r_t = 0;r_t<28;r_t++){
-		for(int c_t = 0;c_t<28;c_t++){
+	int r_base = FrameHeight/2 - CAPTURE_ZONE_SIZE/2;
+	int c_base = FrameWidth/2 - CAPTURE_ZONE_SIZE/2;
+	float (*a_target)[CAPTURE_ZONE_SIZE] = (float (*)[CAPTURE_ZONE_SIZE])target;
+	for(int r_t = 0;r_t<CAPTURE_ZONE_SIZE;r_t++){
+		for(int c_t = 0;c_t<CAPTURE_ZONE_SIZE;c_t++){
 			uint16_t temp = pic[r_base+(2*r_t)][c_base+(2*c_t)];
 			uint8_t pixel_low = temp & 0xFF;
 			uint8_t pixel_high = (temp >> 8) & 0xFF;
