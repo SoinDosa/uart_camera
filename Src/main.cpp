@@ -82,7 +82,7 @@ void SystemClock_Config(void);
 // QQVGA
 #define FrameWidth 160
 #define FrameHeight 120
-#define CAPTURE_ZONE_SIZE 96
+#define CAPTURE_ZONE_SIZE 48
 #elif TFT18
 // QQVGA2
 #define FrameWidth 128
@@ -376,33 +376,13 @@ int main(void)
 					external_key_debounce);
 				UART_Send_String((char*)text);
 			}
-			// Draw Input Data Guide Line
-			// Calculate center position based on actual LCD and frame dimensions
-			int center_x = 160 / 2;
-			int center_y = 80 / 2;  // Display area height is 80 pixels
-			
-			// Adjust box size to fit within 80-pixel display height
-			int display_box_size = 80;  // Use full display height
-			int box_left = center_x - display_box_size / 2;
-			int box_right = center_x + display_box_size / 2;
-			int box_top = 0;  // Start from top of display
-			int box_bottom = display_box_size;  // End at bottom of display
 			
 			// Draw red rectangle border
-			ST7735_DrawVLine(&st7735_pObj, box_left, box_top, display_box_size, 0xf800);
-			ST7735_DrawVLine(&st7735_pObj, box_right, box_top, display_box_size, 0xf800);
-			ST7735_DrawHLine(&st7735_pObj, box_left, box_top, display_box_size, 0xf800);
-			ST7735_DrawHLine(&st7735_pObj, box_left, box_bottom, display_box_size, 0xf800);
+			ST7735_DrawVLine(&st7735_pObj, 160/2-28, 80/2-28, 56, 0xf800);
+			ST7735_DrawVLine(&st7735_pObj, 160/2+28, 80/2-28, 56, 0xf800);
+			ST7735_DrawHLine(&st7735_pObj, 160/2-28, 80/2-28, 56, 0xf800);
+			ST7735_DrawHLine(&st7735_pObj, 160/2-28, 80/2+28, 56, 0xf800);
 			
-			// Debug: Print box coordinates periodically
-			static uint32_t last_box_debug_time = 0;
-			if (HAL_GetTick() - last_box_debug_time > 5000) { // 5초마다
-				last_box_debug_time = HAL_GetTick();
-				sprintf((char *)&text, "Box: L=%d,R=%d,T=%d,B=%d,Size=%d\n\r", 
-					box_left, box_right, box_top, box_bottom, display_box_size);
-				UART_Send_String((char*)text);
-			}
-
 			// int time_start_getdata = HAL_GetTick();
 			// Get_Data(input->data.f);
 			// int time_end_getdata = HAL_GetTick();

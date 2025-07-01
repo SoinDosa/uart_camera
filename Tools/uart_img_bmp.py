@@ -9,8 +9,8 @@ import struct
 ser = serial.Serial('COM8', 115200, timeout=1)
 
 # 이미지 크기 설정 (프로젝트에 맞게 수정)
-width = 96
-height = 96
+width = 48
+height = 48
 image_size = width * height * 2  # RGB565: 픽셀당 2바이트
 
 def create_bmp_header(width, height, bits_per_pixel=24):
